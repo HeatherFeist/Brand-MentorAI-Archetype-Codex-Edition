@@ -19,12 +19,16 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
   const [content, setContent] = useState<string | null>(null);
   const [playbackState, setPlaybackState] = useState<PlaybackState>('idle');
   const [activeType, setActiveType] = useState<'advice' | 'narrative' | 'initial' | null>(null);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   
   const audioRef = useRef<{ source: AudioBufferSourceNode, context: AudioContext } | null>(null);
 
   // Trigger initial calibration automatically if requested
   useEffect(() => {
-    if (autoTrigger && playbackState === 'idle') {
+    if (autoTrigger && playbackState === 'idle' && !content) {
       handleAction('initial');
     }
   }, [autoTrigger]);
@@ -57,6 +61,7 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
     stopNarration();
     setPlaybackState('loading');
     setActiveType(type);
+    setShowEmailCapture(false);
     
     try {
       let text = "";
@@ -75,7 +80,9 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
         setPlaybackState('playing');
         playback.source.onended = () => {
            setPlaybackState('idle');
-           setActiveType(null);
+           if (type === 'initial') {
+             setShowEmailCapture(true);
+           }
         };
       } else {
         setPlaybackState('idle');
@@ -83,6 +90,17 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
     } catch (e) {
       setPlaybackState('idle');
     }
+  };
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // Simulate API call to capture lead
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      setTimeout(() => setShowEmailCapture(false), 3000);
+    }, 1500);
   };
 
   const isAudioActive = playbackState === 'playing' || playbackState === 'paused';
@@ -108,7 +126,7 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
 
         <div className="min-h-[180px] w-full flex flex-col items-center justify-center border-y border-white/5 py-6 space-y-4">
           {content ? (
-            <div className="animate-fade-in text-center space-y-4">
+            <div className="animate-fade-in text-center space-y-4 w-full">
               <div className="max-h-[250px] overflow-y-auto custom-scrollbar px-4">
                 <p className="text-gray-300 leading-relaxed font-light italic text-xs md:text-[13px]">
                   "{content}"
@@ -142,6 +160,38 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
             </div>
           )}
         </div>
+
+        {showEmailCapture && (
+          <div className="w-full animate-fade-in bg-amber-200/5 border border-amber-200/10 rounded-2xl p-6 space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-[10px] text-amber-200 uppercase tracking-widest font-black">Unlock Premium Reading</h4>
+              <p className="text-[9px] text-gray-500 leading-tight">Get your 50-page bespoke executive blueprint delivered instantly.</p>
+            </div>
+            {isSubmitted ? (
+              <div className="py-2 text-[10px] text-amber-200 font-bold uppercase tracking-widest animate-pulse">
+                Blueprint Sent to Cloud
+              </div>
+            ) : (
+              <form onSubmit={handleEmailSubmit} className="space-y-2">
+                <input 
+                  required
+                  type="email" 
+                  placeholder="executive@company.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[11px] text-white focus:outline-none focus:border-amber-200/50"
+                />
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-2.5 rounded-xl bg-amber-200 text-black text-[9px] font-black uppercase tracking-widest hover:bg-white transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Authenticating...' : 'Purchase Premium Blueprint'}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
 
         <div className="w-full space-y-3">
           <button

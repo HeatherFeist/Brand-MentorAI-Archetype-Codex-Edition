@@ -49,7 +49,7 @@ const getBusinessArchetype = (profile: UserProfile) => {
 };
 
 /**
- * Generates the specific "Initial Calibration" narrative requested by the user.
+ * Generates the multi-phase "Initial Calibration" narrative.
  */
 export const getInitialCalibrationNarrative = async (profile: UserProfile) => {
   const archetype = getBusinessArchetype(profile);
@@ -57,24 +57,27 @@ export const getInitialCalibrationNarrative = async (profile: UserProfile) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `You are a world-class Executive Business Mentor. 
-      Deliver an "Initial Business Calibration Reading" for ${profile.name}.
+      Deliver a comprehensive "Initial Business Calibration Reading" for ${profile.name}.
       
       Mathematical Profile:
-      - Life Path: ${profile.lifePathNumber} (Logic: (M+D) + Reduced Year)
-      - Destiny: ${profile.destinyNumber} (Strictly preserving Master Numbers)
-      - Codexed 3rd Identity: ${profile.businessCodexValue}
+      - Sun Sign: ${profile.sunSign}
+      - Life Path: ${profile.lifePathNumber}
+      - Destiny: ${profile.destinyNumber}
+      - Codexed Identity Value: ${profile.businessCodexValue}
+      - Core Archetype: ${archetype}
       
-      Required Structure:
-      1. THE GEOMETRIC NODES: Explain that their personal bearings (Sun, Moon, Rising, Jupiter) have intersected the Torus to ignite "Golden Nodes". Describe what this means for their energetic presence in business.
-      2. EXECUTIVE STRENGTHS: Based on their value of ${profile.businessCodexValue} and archetype "${archetype}", what are their 2 greatest business assets?
-      3. IMPROVEMENTS: Identify one specific "alignment challenge" or area for growth in their current business path.
+      Narrative Structure:
+      1. THE RUNDOWN: Begin with a brief, sophisticated rundown of what they are about to discover about their hidden business architecture.
+      2. ARCHETYPAL PILLARS: Break down the components. Explain the archetypal meaning of their Sun Sign (e.g., Libra represents balance and harmony) and their specific Numerology. Highlight Master Numbers (11, 22, 33) as the "Master Teacher" or "Illuminator" frequencies if they appear.
+      3. FULL SYNTHESIS: Synthesize these parts into a unified "Business Identity". How do their zodiacal traits and numeric frequencies work together to create ${archetype}?
+      4. THE UPGRADE: End by inviting them to go deeper. State that if they provide their executive email, they can unlock a bespoke Premium Reading that maps their legacy trajectory.
       
-      Tone: Professional, calm, futuristic, highly articulate. Use roughly 150-180 words.`,
+      Tone: Professional, calm, high-end executive coach, visionary. Use roughly 200-250 words.`,
       config: { thinkingConfig: { thinkingBudget: 0 } }
     });
     return response.text;
   } catch (error) {
-    return `Welcome, ${profile.name}. Your Codexed Identity ${profile.businessCodexValue} is now calibrated. You operate as ${archetype}, a frequency of high strategic impact.`;
+    return `Welcome, ${profile.name}. Your Codexed Identity ${profile.businessCodexValue} is now calibrated. As a ${profile.sunSign} with Master frequency, you operate with high strategic impact. Provide your email below to receive your full blueprint.`;
   }
 };
 
@@ -107,7 +110,7 @@ export const playCalmNarration = async (text: string, audioContext?: AudioContex
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: `In a calm, professional, and slightly futuristic executive voice, read the following calibration: ${text}` }] }],
       config: {
-        responseModalities: [Modality.AUDIO],
+        responseModalalities: [Modality.AUDIO],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
       },
     });
