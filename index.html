@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coded Geometry & Archetypes</title>
+    <title>Codexed Geometry & Archetypes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
@@ -27,16 +27,17 @@
             animation: float 20s ease-in-out infinite;
         }
         .blur-reveal {
-            backdrop-filter: blur(8px);
-            background: rgba(10, 10, 10, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        ::-webkit-scrollbar {
-            width: 4px;
+        @keyframes bar-pulse {
+            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); opacity: 0.8; }
+            50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); opacity: 1; }
+            100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); opacity: 0.8; }
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 215, 0, 0.2);
-            border-radius: 10px;
+        .animate-bar-glow {
+            animation: bar-pulse 3s ease-in-out infinite;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 2px;
@@ -51,15 +52,18 @@
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3"
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+    "@google/genai": "https://esm.sh/@google/genai@0.8.0"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>

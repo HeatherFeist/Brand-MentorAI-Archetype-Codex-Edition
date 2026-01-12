@@ -2,7 +2,7 @@
 import React from 'react';
 import { AppMode, UserProfile } from '../types';
 import { 
-  CX, CY, R_OUTER, R_HOUSE, 
+  CX, CY, R_OUTER, R_RING,
   pointAtRadius, calculateNodeConfig 
 } from '../services/codexGeometry';
 
@@ -13,32 +13,32 @@ interface CodexConstellationProps {
 
 const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }) => {
   const nodes = calculateNodeConfig(profile);
-  const baseOpacity = mode === 'logo' ? 0.005 : 0.03;
+  const baseOpacity = mode === 'logo' ? 0.005 : 0.05;
 
   const wheelColors = [
-    '#ff0000', '#ff7f00', '#ffff00', '#80ff00', 
-    '#00ff00', '#00ff80', '#00ffff', '#0080ff', 
-    '#0000ff', '#7f00ff', '#ff00ff', '#ff007f'
+    '#ff3333', '#ff9933', '#ffff33', '#99ff33', 
+    '#33ff33', '#33ff99', '#33ffff', '#3399ff', 
+    '#3333ff', '#9933ff', '#ff33ff', '#ff3399'
   ];
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none floating-bg flex items-center justify-center overflow-hidden">
       <svg 
         viewBox="0 0 1000 1000" 
-        className="w-[160vmax] h-[160vmax] opacity-95 transition-all duration-1000"
+        className="w-[170vmax] h-[170vmax] opacity-95 transition-all duration-1000"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
           <filter id="chromeNoise" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="2" result="noise" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="4" seed="5" result="noise" />
             <feColorMatrix type="saturate" values="0" />
-            <feComponentTransfer><feFuncA type="table" tableValues="0 0.08" /></feComponentTransfer>
+            <feComponentTransfer><feFuncA type="table" tableValues="0 0.12" /></feComponentTransfer>
             <feBlend mode="soft-light" in="SourceGraphic" result="textured" />
           </filter>
 
           <filter id="fluidBlend">
-            <feGaussianBlur stdDeviation="40" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+            <feGaussianBlur stdDeviation="50" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10" result="goo" />
           </filter>
 
           {wheelColors.map((color, i) => (
@@ -51,14 +51,14 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
           <mask id="igniteMask">
             <rect x="0" y="0" width="1000" height="1000" fill="black" />
             {nodes.map((node, i) => (
-              <circle key={i} cx={node.x} cy={node.y} r={node.glowRadius * 3} fill="white" fillOpacity="0.4" />
+              <circle key={i} cx={node.x} cy={node.y} r={node.glowRadius * 2.5} fill="white" fillOpacity="0.6" />
             ))}
-            <circle cx={CX} cy={CY} r={150} fill="white" fillOpacity="0.1" />
+            <circle cx={CX} cy={CY} r={200} fill="white" fillOpacity="0.2" />
           </mask>
           
           <radialGradient id="goldNodeCore">
             <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="30%" stopColor="#ffd700" />
+            <stop offset="35%" stopColor="#ffd700" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
 
@@ -68,62 +68,65 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
           </radialGradient>
         </defs>
 
-        {/* 1) SUBSTRATE */}
-        <circle cx={CX} cy={CY} r={1000} fill="#050505" filter="url(#chromeNoise)" />
+        {/* 1) DEEP SPACE SUBSTRATE */}
+        <circle cx={CX} cy={CY} r={1000} fill="#030303" filter="url(#chromeNoise)" />
 
-        {/* 2) RADIATING COLOR WHEEL */}
-        <g id="colorWheel" filter="url(#fluidBlend)" opacity={profile.activationStrength * 0.4 + 0.1}>
+        {/* 2) AURA COLOR WHEEL (User Centric) */}
+        <g id="colorWheel" filter="url(#fluidBlend)" opacity={profile.activationStrength * 0.6 + 0.1}>
           {wheelColors.map((_, i) => (
-            <circle key={i} cx={pointAtRadius(i * 30, 280).x} cy={pointAtRadius(i * 30, 280).y} r={400} fill={`url(#wheelGrad-${i})`} style={{ mixBlendMode: 'screen' }} />
+            <circle key={i} cx={pointAtRadius(i * 30, 320).x} cy={pointAtRadius(i * 30, 320).y} r={450} fill={`url(#wheelGrad-${i})`} style={{ mixBlendMode: 'plus-lighter' }} />
           ))}
         </g>
 
-        {/* 3) GEOMETRY BASE */}
+        {/* 3) BASE ROSE TORUS */}
         <g id="etchedSkeleton" opacity={baseOpacity} stroke="white" fill="none">
-          <circle cx={CX} cy={CY} r={R_OUTER} strokeWidth="0.8" />
+          <circle cx={CX} cy={CY} r={R_OUTER} strokeWidth="1" />
           {[...Array(8)].map((_, i) => {
-            const center = pointAtRadius(i * 45, 220);
+            const center = pointAtRadius(i * 45, R_RING);
             return <circle key={i} cx={center.x} cy={center.y} r={220} strokeWidth="0.5" />;
           })}
         </g>
 
-        {/* 4) IGNITED TORUS - ONLY AT INTERSECTIONS */}
+        {/* 4) DYNAMIC IGNITED OVERLAY */}
         <g id="ignitedGeometry" mask="url(#igniteMask)">
-           <g stroke="rgba(255,215,0,0.8)" fill="none" strokeWidth="2.5">
+           <g stroke="rgba(255,215,0,0.9)" fill="none" strokeWidth="3.5">
             {[...Array(8)].map((_, i) => {
-              const center = pointAtRadius(i * 45, 220);
+              const center = pointAtRadius(i * 45, R_RING);
               return <circle key={i} cx={center.x} cy={center.y} r={220} />;
             })}
           </g>
         </g>
 
-        {/* 5) DYNAMIC NODES - The Result of Intersections */}
+        {/* 5) INTERSECTION NODES */}
         {nodes.map((node, i) => (
           <g key={i}>
-            <circle cx={node.x} cy={node.y} r={node.glowRadius} fill="url(#goldNodeCore)" opacity="0.4" style={{ mixBlendMode: 'plus-lighter' }} />
+            <circle cx={node.x} cy={node.y} r={node.glowRadius} fill="url(#goldNodeCore)" opacity="0.6" style={{ mixBlendMode: 'screen' }} />
             <circle cx={node.x} cy={node.y} r={node.coreRadius} fill="white" />
           </g>
         ))}
 
-        {/* 6) USER CENTER POINT (The Core reference) */}
-        <circle cx={CX} cy={CY} r={15} fill="url(#userCoreGrad)" opacity="0.8" />
-        <circle cx={CX} cy={CY} r={6} fill="white" />
+        {/* 6) USER CENTER POINT */}
+        <circle cx={CX} cy={CY} r={25} fill="url(#userCoreGrad)" opacity="0.7" />
+        <circle cx={CX} cy={CY} r={8} fill="white" />
 
-        {/* 7) THE FOUR BEARINGS */}
-        <g id="bearings" opacity="0.2">
-          {/* Sun - 0° */}
-          <line x1={CX} y1={CY} x2={pointAtRadius(0, R_OUTER).x} y2={pointAtRadius(0, R_OUTER).y} stroke="white" strokeWidth="1" />
-          {/* Moon */}
+        {/* 7) PLANETARY BEARINGS */}
+        <g id="bearings" opacity="0.35">
+          {/* User Sun @ 0° */}
+          <line x1={CX} y1={CY} x2={pointAtRadius(0, R_OUTER).x} y2={pointAtRadius(0, R_OUTER).y} stroke="white" strokeWidth="1.8" />
+          
+          {/* Moon Bearing */}
           {profile.moonRelAngle !== null && (
-            <line x1={CX} y1={CY} x2={pointAtRadius(profile.moonRelAngle, R_OUTER).x} y2={pointAtRadius(profile.moonRelAngle, R_OUTER).y} stroke="#ffd700" strokeWidth="1.5" strokeDasharray="10 5" />
+            <line x1={CX} y1={CY} x2={pointAtRadius(profile.moonRelAngle, R_OUTER).x} y2={pointAtRadius(profile.moonRelAngle, R_OUTER).y} stroke="#ffd700" strokeWidth="2.5" strokeDasharray="14 5" />
           )}
-          {/* Rising */}
+          
+          {/* Rising Bearing */}
           {profile.risingRelAngle !== null && (
-            <line x1={CX} y1={CY} x2={pointAtRadius(profile.risingRelAngle, R_OUTER).x} y2={pointAtRadius(profile.risingRelAngle, R_OUTER).y} stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
+            <line x1={CX} y1={CY} x2={pointAtRadius(profile.risingRelAngle, R_OUTER).x} y2={pointAtRadius(profile.risingRelAngle, R_OUTER).y} stroke="white" strokeWidth="1" strokeDasharray="3 3" />
           )}
-          {/* Jupiter */}
+          
+          {/* Jupiter Bearing */}
           {profile.jupiterRelAngle !== null && (
-            <line x1={CX} y1={CY} x2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).x} y2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).y} stroke="#ff6b6b" strokeWidth="1" strokeDasharray="5 5" />
+            <line x1={CX} y1={CY} x2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).x} y2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).y} stroke="#ff5555" strokeWidth="1.5" strokeDasharray="10 3" />
           )}
         </g>
       </svg>

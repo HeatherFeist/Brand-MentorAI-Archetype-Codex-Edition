@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CodexConstellation from './components/CodexConstellation';
 import MentorPanel from './components/MentorPanel';
 import Onboarding from './components/Onboarding';
@@ -10,32 +10,48 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>('aura');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isNewUser, setIsNewUser] = useState(true);
+  const [animateBars, setAnimateBars] = useState(false);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setAnimateBars(false);
+      const timer = setTimeout(() => setAnimateBars(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
 
   const handleOnboarding = (data: OnboardingData) => {
-    const derived = deriveProfileFromOnboarding(data);
-    setProfile(derived);
-    setIsNewUser(false);
+    try {
+      const derived = deriveProfileFromOnboarding(data);
+      setProfile(derived);
+      setIsNewUser(false);
+      setIsCalibrating(true); // Flag to auto-start the voice intro
+    } catch (err) {
+      console.error("Calibration failed:", err);
+    }
+  };
+
+  const placeholderProfile: UserProfile = { 
+    name: '...', 
+    sunRelAngle: 0, 
+    moonRelAngle: 0, 
+    risingRelAngle: 0, 
+    jupiterRelAngle: 0,
+    circleBand: 0, 
+    activationStrength: 0.1,
+    lifePathNumber: 0,
+    destinyNumber: 0,
+    businessCodexValue: 0,
+    sunSign: '',
+    moonSign: ''
   };
 
   if (isNewUser || !profile) {
     return (
       <div className="relative w-screen h-screen overflow-hidden bg-black flex items-center justify-center">
-        {/* Added missing jupiterRelAngle property to match UserProfile definition */}
         <CodexConstellation 
-          profile={{ 
-            name: '...', 
-            sunRelAngle: 0, 
-            moonRelAngle: null, 
-            risingRelAngle: null, 
-            jupiterRelAngle: null,
-            circleBand: 0, 
-            activationStrength: 0,
-            lifePathNumber: 0,
-            destinyNumber: 0,
-            businessCodexValue: 0,
-            sunSign: '',
-            moonSign: ''
-          }} 
+          profile={placeholderProfile} 
           mode="logo" 
         />
         <Onboarding onComplete={handleOnboarding} />
@@ -46,19 +62,19 @@ const App: React.FC = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden text-white font-sans selection:bg-amber-500/30 bg-black">
       
-      {/* BACKGROUND LAYER */}
+      {/* BACKGROUND GEOMETRY */}
       <CodexConstellation profile={profile} mode={mode} />
 
-      {/* UI OVERLAY LAYER */}
+      {/* OVERLAY UI */}
       <div className="relative z-10 w-full h-full flex flex-col pointer-events-none">
         
-        {/* TOP: Header & Nav */}
+        {/* HEADER */}
         <header className="p-10 md:p-14 flex flex-col md:flex-row justify-between items-start md:items-center pointer-events-auto">
           <div className="space-y-1">
-            <h1 className="text-4xl md:text-6xl font-serif tracking-tighter text-white/95 uppercase">
-              CODED <span className="text-amber-200/90 italic">IDENTITY</span>
+            <h1 className="text-4xl md:text-6xl font-serif tracking-tighter text-white/95 uppercase transition-colors duration-1000">
+              CODEXED <span className="text-amber-200/90 italic">IDENTITY</span>
             </h1>
-            <p className="text-[9px] text-amber-500/50 uppercase tracking-[0.6em] font-bold pl-1">
+            <p className="text-[9px] text-amber-500/60 uppercase tracking-[0.6em] font-bold pl-1 animate-pulse">
               Geometric Business Archetypes
             </p>
           </div>
@@ -67,7 +83,7 @@ const App: React.FC = () => {
             <div className="flex gap-2 p-1.5 bg-white/5 backdrop-blur-3xl rounded-full border border-white/5 shadow-2xl">
               <button
                 onClick={() => setIsNewUser(true)}
-                className="px-8 py-2.5 rounded-full text-[10px] uppercase tracking-widest text-gray-500 hover:text-white transition-all"
+                className="px-8 py-2.5 rounded-full text-[10px] uppercase tracking-widest text-gray-400 hover:text-white transition-all"
               >
                 Reset Calibration
               </button>
@@ -77,37 +93,38 @@ const App: React.FC = () => {
             </div>
             <div className="flex gap-6 pr-6 items-center">
               <div className="flex flex-col items-end">
-                <span className="text-[7px] text-amber-500/50 uppercase tracking-widest font-bold">Codex Identity</span>
-                <span className="text-xl font-serif italic text-amber-200">{profile.businessCodexValue}</span>
+                <span className="text-[7px] text-amber-500/50 uppercase tracking-widest font-bold">Codexed Identity</span>
+                <span className="text-3xl font-serif italic text-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                  {profile.businessCodexValue}
+                </span>
               </div>
               <div className="h-8 w-px bg-white/10"></div>
               <div className="flex flex-col items-start gap-1">
-                <span className="text-[8px] text-gray-500 uppercase tracking-widest">Life Path: <b className="text-white">{profile.lifePathNumber}</b></span>
-                <span className="text-[8px] text-gray-500 uppercase tracking-widest">Destiny: <b className="text-white">{profile.destinyNumber}</b></span>
+                <span className="text-[8px] text-gray-500 uppercase tracking-widest">LP: <b className="text-white">{profile.lifePathNumber}</b></span>
+                <span className="text-[8px] text-gray-500 uppercase tracking-widest">DS: <b className="text-white">{profile.destinyNumber}</b></span>
               </div>
             </div>
           </nav>
         </header>
 
-        {/* MIDDLE: Main Layout Content */}
+        {/* MENTOR COMPONENT */}
         <div className="flex-1 px-10 md:px-14 flex items-center justify-end">
-          {/* Floating Mentor Panel */}
           <div className="pointer-events-auto w-full max-w-sm">
-            <MentorPanel profile={profile} />
+            <MentorPanel profile={profile} autoTrigger={isCalibrating} />
           </div>
         </div>
 
-        {/* BOTTOM: Controls & Metadata */}
+        {/* FOOTER METADATA */}
         <footer className="p-10 md:p-14 flex flex-col md:flex-row justify-between items-end gap-10 pointer-events-auto">
-          <div className="blur-reveal p-8 rounded-[2rem] max-w-xs space-y-6 border border-white/5 shadow-2xl">
-             <div className="space-y-2">
-               <h4 className="text-[10px] text-amber-500/60 uppercase tracking-widest font-black">Geometric Aura</h4>
+          <div className="blur-reveal p-8 rounded-[2.5rem] w-full max-w-xs space-y-8 shadow-2xl">
+             <div className="space-y-3">
+               <h4 className="text-[10px] text-amber-500/60 uppercase tracking-widest font-black">Aura Configuration</h4>
                <div className="flex gap-2">
                  {['logo', 'aura', 'explain'].map(m => (
                     <button 
                       key={m} 
                       onClick={() => setMode(m as AppMode)}
-                      className={`text-[9px] uppercase tracking-tighter px-3 py-1.5 rounded-full border transition-all ${mode === m ? 'border-amber-200 text-amber-200 bg-amber-200/5' : 'border-white/10 text-gray-600 hover:text-gray-300'}`}
+                      className={`text-[9px] uppercase tracking-tighter px-4 py-2 rounded-full border transition-all ${mode === m ? 'border-amber-200 text-amber-200 bg-amber-200/5 shadow-inner' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}
                     >
                       {m}
                     </button>
@@ -115,28 +132,29 @@ const App: React.FC = () => {
                </div>
              </div>
              
-             <div className="space-y-5 pt-2 animate-fade-in">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[9px] text-gray-500 uppercase tracking-widest">
+             {/* Progress Bars with slide and fade */}
+             <div className={`space-y-7 transition-all duration-[1200ms] ease-out ${animateBars ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+                <div className="space-y-2 group">
+                  <div className="flex justify-between text-[9px] text-gray-500 uppercase tracking-widest transition-colors group-hover:text-amber-200">
                     <span>Executive Alignment</span>
-                    <span className="text-amber-200">{profile.moonRelAngle?.toFixed(1)}°</span>
+                    <span className="text-amber-200 font-bold">{profile.moonRelAngle?.toFixed(1)}°</span>
                   </div>
-                  <div className="w-full h-1 bg-white/5 rounded-lg relative overflow-hidden">
+                  <div className="w-full h-1 bg-white/5 rounded-full relative overflow-hidden">
                     <div 
-                      className="absolute h-full bg-amber-200 transition-all duration-1000 shadow-[0_0_10px_rgba(251,191,36,0.5)]" 
-                      style={{ width: `${((profile.moonRelAngle ?? 0) / 360) * 100}%` }}
+                      className={`absolute h-full bg-amber-200 transition-all duration-[2000ms] ease-in-out ${animateBars ? 'animate-bar-glow' : ''}`} 
+                      style={{ width: animateBars ? `${((profile.moonRelAngle ?? 0) / 360) * 100}%` : '0%' }}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[9px] text-gray-500 uppercase tracking-widest">
+                <div className="space-y-2 group">
+                  <div className="flex justify-between text-[9px] text-gray-500 uppercase tracking-widest transition-colors group-hover:text-white">
                     <span>Business Ignition</span>
-                    <span className="text-amber-200">{Math.round(profile.activationStrength * 100)}%</span>
+                    <span className="text-white font-bold">{Math.round(profile.activationStrength * 100)}%</span>
                   </div>
-                  <div className="w-full h-1 bg-white/5 rounded-lg relative overflow-hidden">
+                  <div className="w-full h-1 bg-white/5 rounded-full relative overflow-hidden">
                     <div 
-                      className="absolute h-full bg-white transition-all duration-1000" 
-                      style={{ width: `${profile.activationStrength * 100}%` }}
+                      className={`absolute h-full bg-white transition-all duration-[2500ms] ease-in-out shadow-[0_0_10px_white]`} 
+                      style={{ width: animateBars ? `${profile.activationStrength * 100}%` : '0%' }}
                     />
                   </div>
                 </div>
@@ -144,9 +162,10 @@ const App: React.FC = () => {
           </div>
 
           <div className="text-right space-y-2 opacity-50 transition-opacity hover:opacity-100 duration-1000">
-            <p className="text-[10px] uppercase tracking-[0.5em] font-black text-white">Codex Identity v6.0</p>
-            <p className="text-[9px] text-gray-500 max-w-[240px] leading-relaxed font-medium">
-              A premium synthesis of master numerology and holographic geometry. Optimized for high-potential market leaders.
+            <p className="text-[10px] uppercase tracking-[0.5em] font-black text-white">Codexed Engine v10.0</p>
+            <p className="text-[9px] text-gray-600 max-w-[240px] leading-relaxed font-medium">
+              Deterministic bearing-ring intersection engine. <br/>
+              Master Identity <b>{profile.businessCodexValue}</b> mapped to zodiacal zen.
             </p>
           </div>
         </footer>

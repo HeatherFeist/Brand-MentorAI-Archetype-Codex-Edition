@@ -1,26 +1,33 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getBrandMentorAdvice, getProfileNarrative, playCalmNarration } from '../services/geminiService';
+import { 
+  getBrandMentorAdvice, 
+  getProfileNarrative, 
+  getInitialCalibrationNarrative,
+  playCalmNarration 
+} from '../services/geminiService';
 import { UserProfile } from '../types';
 
 interface MentorPanelProps {
   profile: UserProfile;
+  autoTrigger?: boolean;
 }
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 
-const MentorPanel: React.FC<MentorPanelProps> = ({ profile }) => {
+const MentorPanel: React.FC<MentorPanelProps> = ({ profile, autoTrigger }) => {
   const [content, setContent] = useState<string | null>(null);
   const [playbackState, setPlaybackState] = useState<PlaybackState>('idle');
-  const [activeType, setActiveType] = useState<'advice' | 'narrative' | null>(null);
+  const [activeType, setActiveType] = useState<'advice' | 'narrative' | 'initial' | null>(null);
   
   const audioRef = useRef<{ source: AudioBufferSourceNode, context: AudioContext } | null>(null);
 
+  // Trigger initial calibration automatically if requested
   useEffect(() => {
-    stopNarration();
-    setContent(null);
-    setActiveType(null);
-  }, [profile]);
+    if (autoTrigger && playbackState === 'idle') {
+      handleAction('initial');
+    }
+  }, [autoTrigger]);
 
   const stopNarration = () => {
     if (audioRef.current) {
@@ -45,16 +52,21 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile }) => {
     }
   };
 
-  const handleAction = async (type: 'advice' | 'narrative') => {
+  const handleAction = async (type: 'advice' | 'narrative' | 'initial') => {
     if (playbackState !== 'idle' && activeType === type) return;
     stopNarration();
     setPlaybackState('loading');
     setActiveType(type);
     
     try {
-      const text = type === 'narrative' 
-        ? await getProfileNarrative(profile)
-        : await getBrandMentorAdvice(profile.name, `Moon: ${profile.moonRelAngle}°, Activation: ${profile.activationStrength}, LP: ${profile.lifePathNumber}, Destiny: ${profile.destinyNumber}`);
+      let text = "";
+      if (type === 'initial') {
+        text = await getInitialCalibrationNarrative(profile);
+      } else if (type === 'narrative') {
+        text = await getProfileNarrative(profile);
+      } else {
+        text = await getBrandMentorAdvice(profile.name, `LP: ${profile.lifePathNumber}, DS: ${profile.destinyNumber}`);
+      }
       
       setContent(text);
       const playback = await playCalmNarration(text);
@@ -84,20 +96,20 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile }) => {
                <div className="w-5 h-5 border border-amber-200/20 border-t-amber-200 rounded-full animate-spin"></div>
             ) : (
               <svg className={`w-6 h-6 ${playbackState === 'playing' ? 'text-amber-200' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             )}
           </div>
           <div className="space-y-0.5">
             <h3 className="text-lg font-serif text-white/90 tracking-wide italic">Executive Mentor</h3>
-            <p className="text-[8px] text-amber-500/50 uppercase tracking-[0.6em] font-bold">Personal Assistant Active</p>
+            <p className="text-[8px] text-amber-500/50 uppercase tracking-[0.6em] font-bold">Calibration Interface</p>
           </div>
         </div>
 
-        <div className="min-h-[200px] w-full flex flex-col items-center justify-center border-y border-white/5 py-6 space-y-4">
+        <div className="min-h-[180px] w-full flex flex-col items-center justify-center border-y border-white/5 py-6 space-y-4">
           {content ? (
             <div className="animate-fade-in text-center space-y-4">
-              <div className="max-h-[300px] overflow-y-auto custom-scrollbar px-4">
+              <div className="max-h-[250px] overflow-y-auto custom-scrollbar px-4">
                 <p className="text-gray-300 leading-relaxed font-light italic text-xs md:text-[13px]">
                   "{content}"
                 </p>
@@ -137,14 +149,14 @@ const MentorPanel: React.FC<MentorPanelProps> = ({ profile }) => {
             disabled={playbackState === 'loading'}
             className="w-full py-4 rounded-xl text-[9px] uppercase tracking-[0.3em] bg-white text-black font-bold transition-all hover:bg-amber-100 disabled:opacity-50 shadow-xl"
           >
-            Reveal Full Description
+            Refresh Profile Narrative
           </button>
           <button
             onClick={() => handleAction('advice')}
             disabled={playbackState === 'loading'}
             className="w-full py-2 rounded-xl text-[8px] uppercase tracking-[0.2em] text-amber-200/60 hover:text-amber-200 transition-colors"
           >
-            Get Strategic Directive
+            Strategic Directive
           </button>
         </div>
       </div>

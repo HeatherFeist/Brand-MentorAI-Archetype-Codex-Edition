@@ -27,7 +27,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         className="w-full max-w-lg blur-reveal rounded-[2.5rem] p-10 md:p-14 space-y-10 border border-white/10 shadow-[0_0_100px_rgba(255,215,0,0.1)]"
       >
         <div className="text-center space-y-3">
-          <h2 className="text-4xl font-serif text-white/90 italic tracking-tight">Coded Onboarding</h2>
+          <h2 className="text-4xl font-serif text-white/90 italic tracking-tight">Codexed Onboarding</h2>
           <p className="text-[10px] text-amber-500/50 uppercase tracking-[0.5em] font-bold">Initiating Personal Business Blueprint</p>
         </div>
 

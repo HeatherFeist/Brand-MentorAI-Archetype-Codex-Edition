@@ -2,10 +2,8 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { UserProfile } from "../types";
 
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Manual base64 decoding implementation per guidelines
 function decode(base64: string) {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -16,7 +14,6 @@ function decode(base64: string) {
   return bytes;
 }
 
-// Correct raw PCM audio decoding logic for AudioContext
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
@@ -51,36 +48,47 @@ const getBusinessArchetype = (profile: UserProfile) => {
   return archetypes[base] || "The Strategic Catalyst";
 };
 
-export const getProfileNarrative = async (profile: UserProfile) => {
+/**
+ * Generates the specific "Initial Calibration" narrative requested by the user.
+ */
+export const getInitialCalibrationNarrative = async (profile: UserProfile) => {
   const archetype = getBusinessArchetype(profile);
-  const summary = `
-    Archetype: ${archetype}
-    Value: ${profile.businessCodexValue}
-    Life Path: ${profile.lifePathNumber}
-    Destiny: ${profile.destinyNumber}
-    Sun: ${profile.sunSign}
-    Ignition: ${Math.round(profile.activationStrength * 100)}%
-  `;
-
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are a world-class Business Mentor. 
-      Deliver a "Full Personal Description" for ${profile.name}.
+      contents: `You are a world-class Executive Business Mentor. 
+      Deliver an "Initial Business Calibration Reading" for ${profile.name}.
       
-      Logic to highlight:
-      1. MASTER MATH: Explain how their Life Path of ${profile.lifePathNumber} (from the specific logic (M+D)+Reduced Year) and Destiny of ${profile.destinyNumber} combine to create their "Coded 3rd Identity" value of ${profile.businessCodexValue}.
-      2. ARCHETYPE: Define "${archetype}". Explain that they are the center of their own zodiacal wheel.
-      3. GEOMETRY: Describe how their Sun, Moon, Rising, and Jupiter bearings intersect the geometric Torus to ignite their personal golden nodes.
-      4. STRATEGIC INSIGHT: How should a leader with a value of ${profile.businessCodexValue} operate in this market?
+      Mathematical Profile:
+      - Life Path: ${profile.lifePathNumber} (Logic: (M+D) + Reduced Year)
+      - Destiny: ${profile.destinyNumber} (Strictly preserving Master Numbers)
+      - Codexed 3rd Identity: ${profile.businessCodexValue}
       
-      Tone: Professional, calm, executive assistant voice. ~200 words.`,
+      Required Structure:
+      1. THE GEOMETRIC NODES: Explain that their personal bearings (Sun, Moon, Rising, Jupiter) have intersected the Torus to ignite "Golden Nodes". Describe what this means for their energetic presence in business.
+      2. EXECUTIVE STRENGTHS: Based on their value of ${profile.businessCodexValue} and archetype "${archetype}", what are their 2 greatest business assets?
+      3. IMPROVEMENTS: Identify one specific "alignment challenge" or area for growth in their current business path.
+      
+      Tone: Professional, calm, futuristic, highly articulate. Use roughly 150-180 words.`,
       config: { thinkingConfig: { thinkingBudget: 0 } }
     });
-    // Accessing the text property directly per guidelines
     return response.text;
   } catch (error) {
-    return `Your Coded Identity, ${archetype} (${profile.businessCodexValue}), is ignited at the master frequency.`;
+    return `Welcome, ${profile.name}. Your Codexed Identity ${profile.businessCodexValue} is now calibrated. You operate as ${archetype}, a frequency of high strategic impact.`;
+  }
+};
+
+export const getProfileNarrative = async (profile: UserProfile) => {
+  const archetype = getBusinessArchetype(profile);
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Provide a detailed business analysis for ${profile.name}, who is a ${archetype} (Value: ${profile.businessCodexValue}). Focus on long-term legacy.`,
+      config: { thinkingConfig: { thinkingBudget: 0 } }
+    });
+    return response.text;
+  } catch (error) {
+    return `Your frequency is established at the ${profile.businessCodexValue} level.`;
   }
 };
 
@@ -97,7 +105,7 @@ export const playCalmNarration = async (text: string, audioContext?: AudioContex
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Professional, soft executive voice: ${text}` }] }],
+      contents: [{ parts: [{ text: `In a calm, professional, and slightly futuristic executive voice, read the following calibration: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
@@ -106,7 +114,6 @@ export const playCalmNarration = async (text: string, audioContext?: AudioContex
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
       const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      // Following guideline-compliant raw PCM audio decoding
       const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -114,6 +121,8 @@ export const playCalmNarration = async (text: string, audioContext?: AudioContex
       source.start();
       return { source, context: ctx };
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("TTS failed:", e);
+  }
   return null;
 };

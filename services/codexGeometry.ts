@@ -4,11 +4,8 @@ import { NodeConfig, UserProfile, OnboardingData } from '../types';
 export const CX = 500;
 export const CY = 500;
 export const R_OUTER = 460;
-export const R_INNER = 420;
-export const R_HOUSE = 460;
-export const R_NODE = 280; // Distance where bearings typically intersect rose circles
-export const R_ROSE_RING = 220; // Radius of rose circle centers
-export const R_ROSE_RADIUS = 220; // Radius of individual rose circles
+export const R_RING = 220; // Radius where rose circle centers sit
+export const R_ROSE = 220; // Radius of each of the 8 rose circles
 
 export const pointAtRadius = (angle: number, r: number) => {
   const rad = (angle - 90) * (Math.PI / 180);
@@ -19,14 +16,14 @@ export const pointAtRadius = (angle: number, r: number) => {
 };
 
 /**
- * Numerology: Strict logic as requested.
+ * Numerology: Strict logic
  * Life Path: (Month + Day) + (Reduced Year)
  */
 export const calculateLifePath = (dob: string): number => {
   const parts = dob.split('-'); 
   if (parts.length < 3) return 0;
   
-  const year = parts[0];
+  const yearStr = parts[0];
   const month = parseInt(parts[1]);
   const day = parseInt(parts[2]);
 
@@ -34,15 +31,13 @@ export const calculateLifePath = (dob: string): number => {
   const monthDaySum = month + day;
   
   // 2. Year reduced (e.g. 1982 -> 20 -> 2)
-  let yearSum = year.split('').reduce((acc, d) => acc + parseInt(d), 0);
+  let yearSum = yearStr.split('').reduce((acc, d) => acc + parseInt(d), 0);
   while (yearSum > 9) {
     yearSum = yearSum.toString().split('').reduce((acc, d) => acc + parseInt(d), 0);
   }
 
-  // 3. Final Master Sum (e.g. 31 + 2 = 33)
-  // We do not reduce 11, 22, 33, 44 at the final stage
-  const final = monthDaySum + yearSum;
-  return final; 
+  // 3. Final Master Sum (do not reduce if 11, 22, 33, 44, or simply keep total)
+  return monthDaySum + yearSum; 
 };
 
 /**
@@ -56,17 +51,14 @@ export const calculateDestiny = (name: string): number => {
   };
   const sum = name.toLowerCase().split('').reduce((acc, char) => acc + (map[char] || 0), 0);
   
-  // Custom reduction: only reduce if NOT 11, 22, 33, 44
   let res = sum;
+  // Preservation logic for 11, 22, 33, 44
   while (res > 9 && ![11, 22, 33, 44].includes(res)) {
     res = res.toString().split('').reduce((acc, d) => acc + parseInt(d), 0);
   }
   return res;
 };
 
-/**
- * Simplified Zodiac logic including Jupiter
- */
 export const getSunSign = (dob: string) => {
   const date = new Date(dob);
   const month = date.getMonth() + 1;
@@ -93,10 +85,10 @@ export const deriveProfileFromOnboarding = (data: OnboardingData): UserProfile =
   const businessCodexValue = lifePath + destiny;
   const timeOffset = parseInt(data.tob.split(':')[0]) || 0;
 
-  // Use the re-based center point logic: Sun is at 0
+  // The User Sun is always the 0 point (Center of Reference)
   const moonAngle = (destiny * 33 + timeOffset * 10) % 360;
   const risingAngle = (lifePath * 11 + timeOffset * 5) % 360;
-  const jupiterAngle = ((lifePath + destiny) * 7) % 360;
+  const jupiterAngle = (businessCodexValue * 7) % 360;
 
   return {
     name: data.fullName,
@@ -115,44 +107,55 @@ export const deriveProfileFromOnboarding = (data: OnboardingData): UserProfile =
 };
 
 /**
- * Calculates intersections between bearings and the 8-circle torus.
+ * INTERSECTION ENGINE
+ * Calculates where 4 planetary bearings intersect the 8 rose circles.
  */
 export const calculateNodeConfig = (profile: UserProfile): NodeConfig[] => {
   const nodes: NodeConfig[] = [];
   const bearings = [
-    { angle: profile.sunRelAngle, type: 'sun' },
-    { angle: profile.moonRelAngle ?? 0, type: 'moon' },
-    { angle: profile.risingRelAngle ?? 0, type: 'rising' },
-    { angle: profile.jupiterRelAngle ?? 0, type: 'jupiter' }
+    { angle: profile.sunRelAngle, weight: 1.0 },
+    { angle: profile.moonRelAngle ?? 0, weight: 0.8 },
+    { angle: profile.risingRelAngle ?? 0, weight: 0.7 },
+    { angle: profile.jupiterRelAngle ?? 0, weight: 0.9 }
   ];
 
-  // The 8 Rose Circle centers
-  const roseCenters = [...Array(8)].map((_, i) => pointAtRadius(i * 45, R_ROSE_RING));
+  const roseAngles = [...Array(8)].map((_, i) => i * 45);
 
   bearings.forEach(bearing => {
-    // We check points along the bearing line to find "geometric heat"
-    // For this visual engine, we place a node at the point where the bearing 
-    // crosses the R_NODE (280) ring.
-    const pos = pointAtRadius(bearing.angle, R_NODE);
-    
-    // Count how many rose circles are near this point
-    let overlapCount = 0;
-    roseCenters.forEach(center => {
-      const dist = Math.sqrt(Math.pow(pos.x - center.x, 2) + Math.pow(pos.y - center.y, 2));
-      // If the point is within or near the edge of a rose circle
-      if (dist < R_ROSE_RADIUS + 20) {
-        overlapCount++;
-      }
-    });
+    roseAngles.forEach(alpha => {
+      // Intersection of line r(theta) = bearing.angle and circle centered at P(alpha, R_ring) with radius R_rose
+      // Math: r^2 - 2*r*R_ring*cos(theta - alpha) + (R_ring^2 - R_rose^2) = 0
+      const thetaRad = (bearing.angle - 90) * (Math.PI / 180);
+      const alphaRad = (alpha - 90) * (Math.PI / 180);
+      
+      const B = -2 * R_RING * Math.cos(thetaRad - alphaRad);
+      const C = Math.pow(R_RING, 2) - Math.pow(R_ROSE, 2);
+      
+      const D = B * B - 4 * C;
+      if (D >= 0) {
+        const r1 = (-B + Math.sqrt(D)) / 2;
+        const r2 = (-B - Math.sqrt(D)) / 2;
 
-    // The intensity of the glow is driven by the overlapCount
-    const intensity = Math.min(1, (overlapCount / 4) + (profile.activationStrength * 0.5));
-    
-    nodes.push({
-      ...pos,
-      intensity,
-      coreRadius: 6 + 4 * overlapCount,
-      glowRadius: 40 + 30 * overlapCount
+        [r1, r2].forEach(r => {
+          if (r > 10 && r < R_OUTER) {
+            const pos = pointAtRadius(bearing.angle, r);
+            
+            // Check if multiple bearings pass near here (Intersection density)
+            let density = 0;
+            bearings.forEach(b2 => {
+              if (Math.abs(b2.angle - bearing.angle) < 5) density++;
+            });
+
+            nodes.push({
+              x: pos.x,
+              y: pos.y,
+              intensity: Math.min(1, (density / 4) + (profile.activationStrength * 0.3)),
+              glowRadius: 25 + density * 15,
+              coreRadius: 4 + density * 2
+            });
+          }
+        });
+      }
     });
   });
 
