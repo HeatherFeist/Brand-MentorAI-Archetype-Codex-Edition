@@ -22,7 +22,7 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
   ];
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none floating-bg flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-0 pointer-events-none floating-bg flex items-center justify-center overflow-hidden bg-black">
       <svg 
         viewBox="0 0 1000 1000" 
         className="w-[170vmax] h-[170vmax] opacity-95 transition-all duration-1000"
@@ -48,6 +48,22 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
             </radialGradient>
           ))}
 
+          {/* Mask that only reveals where nodes are present */}
+          <mask id="nodeAuraMask">
+            <rect x="0" y="0" width="1000" height="1000" fill="black" />
+            {nodes.map((node, i) => (
+              <circle 
+                key={i} 
+                cx={node.x} 
+                cy={node.y} 
+                r={node.glowRadius * 3} 
+                fill="white" 
+                fillOpacity={0.4 + (node.intensity * 0.6)} 
+              />
+            ))}
+            <circle cx={CX} cy={CY} r={100} fill="white" fillOpacity="0.3" />
+          </mask>
+          
           <mask id="igniteMask">
             <rect x="0" y="0" width="1000" height="1000" fill="black" />
             {nodes.map((node, i) => (
@@ -69,10 +85,11 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
         </defs>
 
         {/* 1) DEEP SPACE SUBSTRATE */}
-        <circle cx={CX} cy={CY} r={1000} fill="#030303" filter="url(#chromeNoise)" />
+        <rect x="0" y="0" width="1000" height="1000" fill="#000000" />
+        <circle cx={CX} cy={CY} r={1000} fill="#050505" filter="url(#chromeNoise)" />
 
-        {/* 2) AURA COLOR WHEEL (User Centric) */}
-        <g id="colorWheel" filter="url(#fluidBlend)" opacity={profile.activationStrength * 0.6 + 0.1}>
+        {/* 2) AURA COLOR WHEEL - NOW MASKED TO ONLY APPEAR AT NODES */}
+        <g id="colorWheel" filter="url(#fluidBlend)" opacity={profile.activationStrength * 0.8 + 0.1} mask="url(#nodeAuraMask)">
           {wheelColors.map((_, i) => (
             <circle key={i} cx={pointAtRadius(i * 30, 320).x} cy={pointAtRadius(i * 30, 320).y} r={450} fill={`url(#wheelGrad-${i})`} style={{ mixBlendMode: 'plus-lighter' }} />
           ))}
@@ -111,20 +128,13 @@ const CodexConstellation: React.FC<CodexConstellationProps> = ({ profile, mode }
 
         {/* 7) PLANETARY BEARINGS */}
         <g id="bearings" opacity="0.35">
-          {/* User Sun @ 0° */}
           <line x1={CX} y1={CY} x2={pointAtRadius(0, R_OUTER).x} y2={pointAtRadius(0, R_OUTER).y} stroke="white" strokeWidth="1.8" />
-          
-          {/* Moon Bearing */}
           {profile.moonRelAngle !== null && (
             <line x1={CX} y1={CY} x2={pointAtRadius(profile.moonRelAngle, R_OUTER).x} y2={pointAtRadius(profile.moonRelAngle, R_OUTER).y} stroke="#ffd700" strokeWidth="2.5" strokeDasharray="14 5" />
           )}
-          
-          {/* Rising Bearing */}
           {profile.risingRelAngle !== null && (
             <line x1={CX} y1={CY} x2={pointAtRadius(profile.risingRelAngle, R_OUTER).x} y2={pointAtRadius(profile.risingRelAngle, R_OUTER).y} stroke="white" strokeWidth="1" strokeDasharray="3 3" />
           )}
-          
-          {/* Jupiter Bearing */}
           {profile.jupiterRelAngle !== null && (
             <line x1={CX} y1={CY} x2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).x} y2={pointAtRadius(profile.jupiterRelAngle, R_OUTER).y} stroke="#ff5555" strokeWidth="1.5" strokeDasharray="10 3" />
           )}
